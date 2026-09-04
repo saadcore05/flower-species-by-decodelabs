@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iris species classifier — Project 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#efe9d8;
+    --card:#faf7ee;
+    --ink:#242a1f;
+    --ink-soft:#5b6152;
+    --rule:#d5cca9;
+    --moss:#3c5a41;
+    --moss-ink:#233a29;
+    --slate:#3f5a72;
+    --slate-ink:#213041;
+    --ochre:#a9762e;
+    --ochre-ink:#5c3f14;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--rule) 1px, transparent 1px),
+      linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+    background-size:28px 28px;
+    background-position:-1px -1px;
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    min-height:100vh;
+  }
+  .wrap{
+    max-width:1000px;
+    margin:0 auto;
+    padding:48px 28px 72px;
+  }
+  header{margin-bottom:40px;}
+  .kicker{
+    font-size:13px;
+    color:var(--ink-soft);
+    letter-spacing:0.01em;
+    margin:0 0 10px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:44px;
+    line-height:1.1;
+    margin:0 0 12px;
+    max-width:14ch;
+  }
+  .sub{
+    font-size:15px;
+    color:var(--ink-soft);
+    max-width:56ch;
+    line-height:1.6;
+    margin:0;
+  }
+
+  .board{
+    display:grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap:20px;
+    align-items:start;
+  }
+  @media (max-width:820px){ .board{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--rule);
+    border-radius:6px;
+    padding:28px 30px;
+  }
+  .card h2{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:20px;
+    margin:0 0 22px;
+  }
+
+  .field{margin-bottom:22px;}
+  .field:last-of-type{margin-bottom:26px;}
+  .field-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:8px;
+  }
+  .field-row label{font-size:14px;}
+  .field-row .val{
+    font-family:'Fraunces', serif;
+    font-size:16px;
+    color:var(--moss-ink);
+    min-width:56px;
+    text-align:right;
+  }
+  /* Larger invisible hit area (28px) for comfortable touch on phones,
+     while the visible track itself stays a thin 2px hairline. */
+  input[type=range]{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:28px;
+    background:transparent;
+    outline:none;
+    margin:0;
+    touch-action:pan-y;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:2px;
+    background:var(--rule);
+    border-radius:2px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    margin-top:-8px;
+    width:18px;height:18px;border-radius:50%;
+    background:var(--moss);
+    border:2px solid var(--card);
+    box-shadow:0 0 0 1px var(--moss);
+    cursor:pointer;
+  }
+  input[type=range]::-moz-range-track{
+    height:2px;
+    background:var(--rule);
+    border-radius:2px;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:18px;height:18px;border-radius:50%;
+    background:var(--moss);
+    border:2px solid var(--card);
+    box-shadow:0 0 0 1px var(--moss);
+    cursor:pointer;
+  }
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .field.primary .field-row label{font-weight:600;}
+  .field.primary .val{color:var(--moss-ink);}
+
+  button.classify{
+    width:100%;
+    padding:13px 18px;
+    font-family:'Work Sans', sans-serif;
+    font-size:15px;
+    font-weight:500;
+    color:#faf7ee;
+    background:var(--moss);
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+  }
+  button.classify:hover{background:var(--moss-ink);}
+
+  .result-top{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    margin-bottom:20px;
+  }
+  .glyph{width:76px;height:76px;flex:none;}
+  .result-name{
+    font-family:'Fraunces', serif;
+    font-size:26px;
+    margin:0 0 4px;
+  }
+  .result-latin{
+    font-style:italic;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin:0;
+  }
+
+  .votes{margin-bottom:22px;}
+  .vote-row{
+    display:grid;
+    grid-template-columns:96px 1fr 30px;
+    align-items:center;
+    gap:10px;
+    margin-bottom:8px;
+    font-size:13px;
+  }
+  .vote-track{
+    height:7px;
+    background:var(--rule);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .vote-fill{height:100%;border-radius:4px;}
+
+  .scatter-label{font-size:13px;color:var(--ink-soft);margin:0 0 10px;}
+  svg.scatter{width:100%;height:auto;display:block;}
+
+  .status-box{
+    border:1px solid var(--rule);
+    border-radius:6px;
+    padding:10px 14px;
+    margin-bottom:20px;
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+  }
+  .status-row{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-size:13px;
+  }
+  .status-dot{
+    width:9px;height:9px;border-radius:50%;
+    flex:none;
+    border:1.5px solid var(--rule);
+    background:transparent;
+  }
+  .status-row.active .status-dot{
+    border-color:transparent;
+  }
+  .status-row.active{font-weight:600;}
+  .status-row .status-tag{
+    margin-left:auto;
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+  .status-row.active .status-tag{color:inherit;}
+
+  .legend{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);}
+  .legend-dot{width:8px;height:8px;border-radius:50%;}
+
+  footer{
+    margin-top:22px;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+  }
+  @media (max-width:820px){ footer{grid-template-columns:repeat(2,1fr);} }
+  .plate{
+    border:1px solid var(--rule);
+    border-radius:6px;
+    padding:14px 16px;
+    background:var(--card);
+  }
+  .plate .num{
+    font-family:'Fraunces', serif;
+    font-size:22px;
+    margin:0 0 2px;
+  }
+  .plate .lbl{font-size:12px;color:var(--ink-soft);margin:0;}
+
+  @keyframes resultPulse{
+    0%{ transform:scale(1); }
+    35%{ transform:scale(1.06); }
+    100%{ transform:scale(1); }
+  }
+  .result-top.pulse .result-name,
+  .result-top.pulse .glyph{
+    animation:resultPulse 0.38s ease-out;
+  }
+  .result-top.pulse .result-name{ color:var(--moss-ink); }
+
+  /* ---------- Responsive: tablet & phone ---------- */
+  @media (max-width:820px){
+    .wrap{padding:36px 20px 56px;}
+    h1{font-size:34px;}
+  }
+  @media (max-width:480px){
+    .wrap{padding:24px 14px 48px;}
+    h1{font-size:27px;max-width:100%;}
+    .sub{font-size:14px;}
+    .card{padding:20px 18px;}
+    .card h2{font-size:18px;margin-bottom:16px;}
+    .result-top{gap:12px;}
+    .glyph{width:56px;height:56px;}
+    .result-name{font-size:21px;}
+    .vote-row{grid-template-columns:76px 1fr 34px;font-size:12px;gap:8px;}
+    footer{grid-template-columns:repeat(2,1fr);}
+    .plate{padding:12px 14px;}
+    .plate .num{font-size:19px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="kicker">Project 2 — data classification using artificial intelligence</p>
+    <h1>Iris species classifier</h1>
+    <p class="sub">A K-nearest-neighbors diagnostic tool trained on the Fisher Iris benchmark. Move the sliders to record a specimen's measurements — the model standardizes them and votes among its five closest neighbors in the training set.</p>
+  </header>
+
+  <div class="board">
+
+    <section class="card">
+      <h2>Specimen measurements</h2>
+
+      <div class="field primary">
+        <div class="field-row"><label for="pl">Petal length</label><span class="val"><span id="pl-val">3.8</span> cm</span></div>
+        <input type="range" id="pl" min="1.0" max="6.9" step="0.1" value="3.8">
+      </div>
+      <div class="field primary">
+        <div class="field-row"><label for="pw">Petal width</label><span class="val"><span id="pw-val">1.2</span> cm</span></div>
+        <input type="range" id="pw" min="0.1" max="2.5" step="0.1" value="1.2">
+      </div>
+      <div class="field">
+        <div class="field-row"><label for="sl">Sepal length</label><span class="val"><span id="sl-val">5.8</span> cm</span></div>
+        <input type="range" id="sl" min="4.3" max="7.9" step="0.1" value="5.8">
+      </div>
+      <div class="field">
+        <div class="field-row"><label for="sw">Sepal width</label><span class="val"><span id="sw-val">3.1</span> cm</span></div>
+        <input type="range" id="sw" min="2.0" max="4.4" step="0.1" value="3.1">
+      </div>
+
+      <button class="classify" id="classify-btn">Classify specimen</button>
+      <p class="hint" id="live-hint">Updates live as you move the sliders — petal measurements shift the diagnosis the most; sepal measurements overlap more across species, so they'll move it less.</p>
+    </section>
+
+    <section class="card">
+      <h2>Field diagnosis</h2>
+
+      <div class="result-top" id="result-top">
+        <svg class="glyph" id="glyph" viewBox="0 0 100 100"></svg>
+        <div>
+          <p class="result-name" id="result-name">—</p>
+          <p class="result-latin" id="result-latin">Iris —</p>
+        </div>
+      </div>
+
+      <div class="votes" id="votes"></div>
+
+      <div class="status-box" id="status-box"></div>
+
+      <p class="scatter-label">Nearest neighbors — petal length vs. petal width (cm)</p>
+      <svg class="scatter" id="scatter" viewBox="0 0 320 220"></svg>
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--moss)"></span>Setosa</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--slate)"></span>Versicolor</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--ochre)"></span>Virginica</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--ink);width:9px;height:9px;"></span>Your specimen</div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <div class="plate"><p class="num">150</p><p class="lbl">Specimens in benchmark</p></div>
+    <div class="plate"><p class="num">120 / 30</p><p class="lbl">Train / test split</p></div>
+    <div class="plate"><p class="num">K = 5</p><p class="lbl">Neighbors consulted</p></div>
+    <div class="plate"><p class="num">100%</p><p class="lbl">Test-set accuracy</p></div>
+  </footer>
+
+</div>
+
+<script>
+const TRAIN = [[-1.474,1.204,-1.563,-1.313,0],[-0.133,2.992,-1.276,-1.046,0],[1.086,0.086,0.386,0.289,1],[-1.230,0.756,-1.219,-1.313,0],[-1.718,0.309,-1.391,-1.313,0],[0.598,-1.256,0.730,0.957,2],[0.720,0.309,0.443,0.423,1],[-0.743,0.980,-1.276,-1.313,0],[-0.986,1.204,-1.333,-1.313,0],[-0.743,2.322,-1.276,-1.446,0],[-0.011,-0.809,0.787,0.957,2],[0.233,0.756,0.443,0.556,1],[1.086,0.086,0.558,0.423,1],[-0.499,1.874,-1.391,-1.046,0],[-0.499,1.427,-1.276,-1.313,0],[-0.377,-1.479,-0.015,-0.245,1],[0.598,-0.585,0.787,0.423,2],[0.720,0.086,1.016,0.823,2],[0.964,-0.138,0.386,0.289,1],[1.695,1.204,1.360,1.758,2],[-0.133,-0.361,0.271,0.156,1],[2.183,-0.138,1.647,1.224,2],[-0.255,-0.138,0.443,0.423,1],[-0.864,0.980,-1.333,-1.313,0],[2.305,-0.585,1.704,1.090,2],[-0.011,-0.809,0.214,-0.245,1],[-0.743,0.756,-1.333,-1.313,0],[-0.986,0.980,-1.391,-1.179,0],[-0.864,1.651,-1.047,-1.046,0],[-0.986,-2.374,-0.130,-0.245,1],[0.598,-0.809,0.672,0.823,2],[-1.230,0.756,-1.047,-1.313,0],[-0.986,-0.138,-1.219,-1.313,0],[-0.864,0.533,-1.161,-0.912,0],[-0.255,-0.809,0.271,0.156,1],[-0.864,0.756,-1.276,-1.313,0],[-0.133,-0.138,0.271,0.022,1],[2.305,1.651,1.704,1.357,2],[-1.474,0.309,-1.333,-1.313,0],[0.476,-0.361,0.329,0.156,1],[-0.133,-1.256,0.730,1.090,2],[-0.377,2.545,-1.333,-1.313,0],[0.233,-0.138,0.615,0.823,2],[-0.011,-0.809,0.787,0.957,2],[0.233,-1.927,0.157,-0.245,1],[-0.499,-0.138,0.443,0.423,1],[0.476,0.756,0.959,1.491,2],[-0.377,-1.703,0.157,0.156,1],[-0.499,1.874,-1.161,-1.046,0],[-0.986,-1.703,-0.245,-0.245,1],[0.720,-0.809,0.902,0.957,2],[-0.986,0.533,-1.333,-1.313,0],[-0.986,0.309,-1.448,-1.313,0],[-0.377,-1.479,0.042,-0.111,1],[1.086,-0.138,0.730,0.690,1],[-1.108,0.086,-1.276,-1.313,0],[-0.011,-0.585,0.787,1.624,2],[-0.986,0.756,-1.276,-1.313,0],[-0.986,0.980,-1.219,-0.779,0],[0.111,0.309,0.615,0.823,1],[-0.864,-1.256,-0.416,-0.111,1],[1.330,0.309,1.131,1.491,2],[0.233,-0.809,0.787,0.556,1],[0.355,-1.032,1.074,0.289,2],[2.305,-0.138,1.360,1.491,2],[-0.377,-1.256,0.157,0.156,1],[-1.718,-0.361,-1.333,-1.313,0],[-1.840,-0.138,-1.505,-1.446,0],[0.233,-1.927,0.730,0.423,2],[1.695,0.309,1.303,0.823,2],[-1.474,0.086,-1.276,-1.313,0],[-0.864,0.980,-1.333,-1.179,0],[-1.718,-0.138,-1.391,-1.313,0],[0.598,-1.256,0.672,0.423,1],[0.598,0.756,1.074,1.624,2],[-1.474,0.756,-1.333,-1.179,0],[1.208,-0.138,1.016,1.224,2],[0.598,0.533,1.303,1.758,2],[-1.352,0.309,-1.391,-1.313,0],[0.355,-0.361,0.558,0.289,1],[0.842,-0.585,0.500,0.423,1],[0.476,-0.585,0.615,0.823,2],[1.452,0.309,0.558,0.289,1],[0.720,0.309,0.902,1.491,2],[-0.864,1.651,-1.219,-1.313,0],[1.330,0.086,0.959,1.224,2],[0.111,-0.138,0.271,0.423,1],[0.842,-0.138,0.844,1.090,2],[-0.133,-1.032,-0.130,-0.245,1],[-0.743,-0.809,0.099,0.289,1],[0.355,-0.138,0.500,0.289,1],[-1.596,-1.703,-1.391,-1.179,0],[0.964,-0.361,0.500,0.156,1],[-0.377,-1.032,0.386,0.022,1],[-0.621,1.427,-1.276,-1.313,0],[-0.255,-0.138,0.214,0.156,1],[1.817,-0.361,1.475,0.823,2],[1.086,0.533,1.131,1.224,2],[-0.864,1.427,-1.276,-1.046,0],[-1.108,-1.479,-0.245,-0.245,1],[1.086,0.533,1.131,1.758,2],[1.695,-0.138,1.188,0.556,2],[-1.108,1.204,-1.333,-1.446,0],[1.086,0.086,1.074,1.624,2],[-1.108,-0.138,-1.333,-1.313,0],[1.330,0.086,0.672,0.423,1],[1.939,-0.585,1.360,0.957,2],[0.598,-0.361,1.074,0.823,2],[-0.133,-0.585,0.214,0.156,1],[0.842,-0.138,1.016,0.823,2],[0.598,-1.703,0.386,0.156,1],[0.720,-0.361,0.329,0.156,1],[-0.255,-0.585,0.672,1.090,2],[0.111,-0.138,0.787,0.823,2],[-0.499,0.756,-1.161,-1.313,0],[0.355,-0.585,0.157,0.156,1],[-1.108,-1.256,0.443,0.690,2],[-0.011,2.098,-1.448,-1.313,0],[-0.011,-1.032,0.157,0.022,1],[1.573,-0.138,1.245,1.224,2]];
+
+const MEAN = [5.809166666666665, 3.0616666666666674, 3.726666666666667, 1.1833333333333333];
+const SCALE = [0.8203653488267014, 0.44724775634490965, 1.745027857147909, 0.7491476638301838];
+const K = 5;
+const SPECIES = [
+  {key:0, name:"Setosa", latin:"Iris setosa", color:"#3c5a41", ink:"#233a29", petal:0.55},
+  {key:1, name:"Versicolor", latin:"Iris versicolor", color:"#3f5a72", ink:"#213041", petal:0.85},
+  {key:2, name:"Virginica", latin:"Iris virginica", color:"#a9762e", ink:"#5c3f14", petal:1.15}
+];
+
+function standardize(raw){
+  return raw.map((v,i)=>(v-MEAN[i])/SCALE[i]);
+}
+
+function classify(raw){
+  const z = standardize(raw);
+  const dists = TRAIN.map(row=>{
+    const d = Math.sqrt(row.slice(0,4).reduce((s,v,i)=>s+(v-z[i])**2,0));
+    return {d, label:row[4]};
+  });
+  dists.sort((a,b)=>a.d-b.d);
+  const neighbors = dists.slice(0,K);
+  const counts = [0,0,0];
+  neighbors.forEach(n=>counts[n.label]++);
+  let winner = 0;
+  for(let i=1;i<3;i++) if(counts[i]>counts[winner]) winner=i;
+  return {winner, counts, neighbors};
+}
+
+function drawGlyph(speciesIdx){
+  const s = SPECIES[speciesIdx];
+  const p = s.petal;
+  const svg = document.getElementById('glyph');
+  const w = 34*p, h = 46*p;
+  svg.innerHTML = `
+    <g transform="translate(50,52)" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linecap="round">
+      <ellipse cx="0" cy="${-h*0.55}" rx="${w*0.36}" ry="${h*0.52}" transform="rotate(0)"/>
+      <ellipse cx="${-w*0.5}" cy="${-h*0.1}" rx="${w*0.34}" ry="${h*0.46}" transform="rotate(-42 ${-w*0.5} ${-h*0.1})"/>
+      <ellipse cx="${w*0.5}" cy="${-h*0.1}" rx="${w*0.34}" ry="${h*0.46}" transform="rotate(42 ${w*0.5} ${-h*0.1})"/>
+      <line x1="0" y1="6" x2="0" y2="42" stroke="${s.color}" stroke-width="2"/>
+      <path d="M0,20 C10,18 16,10 18,2" stroke="${s.color}" stroke-width="1.6"/>
+    </g>`;
+}
+
+function renderVotes(counts, winner){
+  const total = counts.reduce((a,b)=>a+b,0);
+  const el = document.getElementById('votes');
+  el.innerHTML = SPECIES.map((s,i)=>{
+    const pct = Math.round(100*counts[i]/total);
+    return `<div class="vote-row">
+      <span>${s.name}</span>
+      <span class="vote-track"><span class="vote-fill" style="width:${pct}%;background:${s.color}"></span></span>
+      <span>${counts[i]}/${total}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderStatusBox(winner){
+  const el = document.getElementById('status-box');
+  el.innerHTML = SPECIES.map((s,i)=>{
+    const isActive = i === winner;
+    return `<div class="status-row ${isActive?'active':''}" style="${isActive?`color:${s.ink}`:''}">
+      <span class="status-dot" style="${isActive?`background:${s.color}`:''}"></span>
+      <span>${s.name}</span>
+      <span class="status-tag">${isActive ? 'Showing now' : 'Not showing'}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderScatter(rawPoint, neighborLabelsWithDist){
+  const svg = document.getElementById('scatter');
+  const margin = {l:34,r:12,t:12,b:28};
+  const w = 320 - margin.l - margin.r;
+  const h = 220 - margin.t - margin.b;
+  const xMin=1.0, xMax=6.9, yMin=0.1, yMax=2.5;
+  const X = v => margin.l + (v-xMin)/(xMax-xMin)*w;
+  const Y = v => margin.t + h - (v-yMin)/(yMax-yMin)*h;
+
+  let parts = [];
+  parts.push(`<line x1="${margin.l}" y1="${margin.t+h}" x2="${margin.l+w}" y2="${margin.t+h}" stroke="#c9c0a0" stroke-width="1"/>`);
+  parts.push(`<line x1="${margin.l}" y1="${margin.t}" x2="${margin.l}" y2="${margin.t+h}" stroke="#c9c0a0" stroke-width="1"/>`);
+  parts.push(`<text x="${margin.l+w/2}" y="${218}" font-size="10" fill="#5b6152" text-anchor="middle" font-family="Work Sans, sans-serif">petal length</text>`);
+  parts.push(`<text x="10" y="${margin.t+h/2}" font-size="10" fill="#5b6152" text-anchor="middle" font-family="Work Sans, sans-serif" transform="rotate(-90 10 ${margin.t+h/2})">petal width</text>`);
+
+  const neighborIdxSet = new Set(neighborLabelsWithDist.map(n=>n.idx));
+
+  TRAIN.forEach((row,idx)=>{
+    const pl = row[2]*SCALE[2]+MEAN[2];
+    const pw = row[3]*SCALE[3]+MEAN[3];
+    const sp = SPECIES[row[4]];
+    const isNeighbor = neighborIdxSet.has(idx);
+    parts.push(`<circle cx="${X(pl).toFixed(1)}" cy="${Y(pw).toFixed(1)}" r="${isNeighbor?4.2:2.6}" fill="${sp.color}" fill-opacity="${isNeighbor?1:0.45}" stroke="${isNeighbor?'#242a1f':'none'}" stroke-width="${isNeighbor?1:0}"/>`);
+  });
+
+  parts.push(`<circle cx="${X(rawPoint[2]).toFixed(1)}" cy="${Y(rawPoint[3]).toFixed(1)}" r="5.5" fill="#242a1f" stroke="#faf7ee" stroke-width="1.5"/>`);
+
+  svg.innerHTML = parts.join('');
+}
+
+let lastWinner = null;
+
+function run(){
+  const raw = [
+    parseFloat(document.getElementById('sl').value),
+    parseFloat(document.getElementById('sw').value),
+    parseFloat(document.getElementById('pl').value),
+    parseFloat(document.getElementById('pw').value)
+  ];
+  const {winner, counts} = classify(raw);
+
+  const z = standardize(raw);
+  const distIdx = TRAIN.map((row,idx)=>({
+    idx,
+    d: Math.sqrt(row.slice(0,4).reduce((s,v,i)=>s+(v-z[i])**2,0))
+  })).sort((a,b)=>a.d-b.d).slice(0,K);
+
+  document.getElementById('result-name').textContent = SPECIES[winner].name;
+  document.getElementById('result-latin').textContent = SPECIES[winner].latin;
+  drawGlyph(winner);
+  renderVotes(counts, winner);
+  renderStatusBox(winner);
+  renderScatter(raw, distIdx);
+
+  // Make a species change unmistakable: pulse the result block whenever
+  // the winning class actually flips (not on every minor slider nudge).
+  if (lastWinner !== null && lastWinner !== winner){
+    const resultTop = document.getElementById('result-top');
+    resultTop.classList.remove('pulse');
+    void resultTop.offsetWidth; // restart animation
+    resultTop.classList.add('pulse');
+  }
+  lastWinner = winner;
+}
+
+['sl','sw','pl','pw'].forEach(id=>{
+  const input = document.getElementById(id);
+  const out = document.getElementById(id+'-val');
+  input.addEventListener('input', ()=>{
+    out.textContent = parseFloat(input.value).toFixed(1);
+    run();
+  });
+});
+document.getElementById('classify-btn').addEventListener('click', run);
+
+run();
+</script>
+</body>
+</html>
